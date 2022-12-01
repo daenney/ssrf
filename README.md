@@ -1,4 +1,14 @@
-# ssrf
+<h1 align="center">
+🌐 ssrf 🔐
+</h1>
+<h4 align="center">A Go library for implementing SSRF protections</h4>
+<p align="center">
+    <a href="https://github.com/daenney/ssrf/actions/workflows/test.yaml)"><img src="https://github.com/daenney/ssrf/actions/workflows/test.yaml/badge.svg?branch=main" alt="Build Status"></a>
+	<a href="https://github.com/daenney/ssrf/releases"><img src="https://img.shields.io/github/release/daenney/ssrf.svg" alt="Release"></a>
+    <a href="https://goreportcard.com/report/code.dny.dev/ssrf"><img src="https://goreportcard.com/badge/code.dny.dev/ssrf" alt="Go report card"></a>
+    <a href="https://pkg.go.dev/code.dny.dev/ssrf"><img src="https://pkg.go.dev/badge/code.dny.dev/ssrf.svg" alt="GoDoc"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/github/license/daenney/ssrf" alt="License: MIT"></a>
+</p>
 
 This package aims to help with implementing SSRF protections. It differs from
 other packages in that it is kept automatically in sync with the IANA Special

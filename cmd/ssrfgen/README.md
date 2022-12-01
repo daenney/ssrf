@@ -12,6 +12,7 @@ It works by:
 ## Usage
 
 ```
+$ go run code.dny.dev/ssrf/cmd/ssrfgen -help
 Usage of ssrfgen:
   -output.gen string
     	file to write the generated code into
