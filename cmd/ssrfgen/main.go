@@ -24,6 +24,7 @@ var (
 		{Name: "Multicast", Prefix: "224.0.0.0/4", RFC: "RFC 5771"},
 	}
 	additionalV6Entries = []entry{
+		{Name: "Deprecated (site-local)", Prefix: "fec0::/10", RFC: "RFC 3879"},
 		{Name: "Multicast", Prefix: "ff00::/8", RFC: "RFC 4291"},
 	}
 )
