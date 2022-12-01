@@ -1,0 +1,44 @@
+name: Update
+
+on:
+  schedule:
+    - cron: '12 6 5 * *'
+    - cron: '12 6 20 * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: Update prefixes
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-go@v3
+      with:
+        go-version: 1.19.x
+    - uses: actions/checkout@v3
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-1.19.x-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.19.x-
+    - run: go run code.dny.dev/ssrf/cmd/ssrfgen -output.gen=./ssrf_gen.go
+    - name: Commit, push and PR
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if test -n "$(git status -s)"; then
+          git checkout -b update-$(date +"%Y-%m-%d")
+          git add .
+          git config user.name "GitHub"
+          git config user.email "noreply@github.com"
+          git commit -m "Updated prefixes by ssrfgen"
+          git push -u origin HEAD
+          gh pr create -B main -H update-$(date +"%Y-%m-%d") --title "Updated prefixes by ssrfgen" --body "" --reviewer daenney
+        else
+          echo "No changes to generated code"
+        fi
