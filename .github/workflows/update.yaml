@@ -29,13 +29,13 @@ jobs:
     - run: go run code.dny.dev/ssrf/cmd/ssrfgen -output.gen=./ssrf_gen.go
     - name: Commit, push and PR
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.SSRFGEN_UPDATE_TOKEN }}
       run: |
         if test -n "$(git status -s)"; then
           git checkout -b update-$(date +"%Y-%m-%d")
           git add .
-          git config user.name "GitHub"
-          git config user.email "noreply@github.com"
+          git config user.name "ssrfgen-bot"
+          git config user.email "ssrfgen-bot@users.noreply.github.com"
           git commit -m "Updated prefixes by ssrfgen"
           git push -u origin HEAD
           gh pr create -B main -H update-$(date +"%Y-%m-%d") --title "Updated prefixes by ssrfgen" --body "" --reviewer daenney
