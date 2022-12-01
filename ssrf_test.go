@@ -153,7 +153,7 @@ func TestDefaultGuardian(t *testing.T) {
 		{Addr: "[::1]:80", Network: "tcp6", Err: ErrProhibitedIP},
 		{Addr: "invalid network", Network: "udp6", Err: ErrProhibitedNetwork},
 		{Addr: "invalid address", Network: "tcp4", Err: ErrInvalidHostPort},
-		{Addr: "[::ffff:129.144.52.38]:80", Network: "tcp6", Err: ErrProhibitedIP},
+		{Addr: "[::ffff:129.144.52.38]:80", Network: "tcp6", Err: ErrProhibitedNetwork},
 	}
 
 	s := New()
