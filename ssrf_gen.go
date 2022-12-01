@@ -67,6 +67,7 @@ var (
 		netip.MustParsePrefix("2620:4f:8000::/48"), // Direct Delegation AS112 Service (RFC 7534)
 		netip.MustParsePrefix("fc00::/7"),          // Unique-Local (RFC 4193, RFC 8190)
 		netip.MustParsePrefix("fe80::/10"),         // Link-Local Unicast (RFC 4291)
+		netip.MustParsePrefix("fec0::/10"),         // Deprecated (site-local) (RFC 3879)
 		netip.MustParsePrefix("ff00::/8"),          // Multicast (RFC 4291)
 	}
 )
