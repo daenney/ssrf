@@ -27,6 +27,15 @@ place, so that a name can be translated to an IP first.
 
 ## Usage
 
+You can retrieve this package with:
+
+```
+go get code.dny.dev/ssrf
+```
+
+You can then call the `New()` method to get a Guardian and pass it on to your
+`net.Dialer` of choice.
+
 ```go
 s := ssrf.New()
 
