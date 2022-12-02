@@ -49,7 +49,7 @@ var (
 		netip.MustParsePrefix("198.51.100.0/24"), // Documentation (TEST-NET-2) (RFC 5737)
 		netip.MustParsePrefix("203.0.113.0/24"),  // Documentation (TEST-NET-3) (RFC 5737)
 		netip.MustParsePrefix("240.0.0.0/4"),     // Reserved (RFC 1112, Section 4)
-		netip.MustParsePrefix("224.0.0.0/4"),     // Multicast (RFC 5771)
+		netip.MustParsePrefix("224.0.0.0/4"),     // Multicast (RFC 1112, Section 4)
 	}
 
 	// IPv6SpecialPurpose contains IPv6 special purpose IP prefixes
