@@ -38,7 +38,7 @@ jobs:
           git config user.email "ssrfgen-bot@users.noreply.github.com"
           git commit -m "Updated prefixes by ssrfgen"
           git push -u origin HEAD
-          gh pr create -B main -H update-$(date +"%Y-%m-%d") --title "Updated prefixes by ssrfgen" --body "" --reviewer daenney
+          gh api repos/daenney/ssrf/pulls -f title='Updated prefixes by ssrfgen' -f base='main' -f head="update-$(date +'%Y-%m-%d')" -f body=''
         else
           echo "No changes to generated code"
         fi
