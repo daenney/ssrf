@@ -21,7 +21,7 @@ const (
 
 var (
 	additionalV4Entries = []entry{
-		{Name: "Multicast", Prefix: "224.0.0.0/4", RFC: "RFC 5771"},
+		{Name: "Multicast", Prefix: "224.0.0.0/4", RFC: "RFC 1112, Section 4"},
 	}
 	additionalV6Entries = []entry{
 		{Name: "Deprecated (site-local)", Prefix: "fec0::/10", RFC: "RFC 3879"},
