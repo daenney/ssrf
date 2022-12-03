@@ -2,12 +2,14 @@ on:
   pull_request:
     paths:
       - '**.go'
+      - '**.tmpl'
       - '.github/workflows/test.yaml'
     branches:
       - main
   push:
     paths:
       - '**.go'
+      - '**.tmpl'
       - '.github/workflows/test.yaml'
     branches:
       - main

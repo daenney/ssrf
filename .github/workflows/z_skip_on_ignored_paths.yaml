@@ -3,12 +3,14 @@ on:
   pull_request:
     paths-ignore:
       - '**.go'
+      - '**.tmpl'
       - '.github/workflows/test.yaml'
     branches:
       - main
   push:
     paths-ignore:
       - '**.go'
+      - '**.tmpl'
       - '.github/workflows/test.yaml'
     branches:
       - main
