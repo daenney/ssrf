@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -254,6 +255,53 @@ func TestCustomGuardian(t *testing.T) {
 				if !errors.Is(err, tc.Err) {
 					t.Fatalf("Expected error: %v, got: %v", tc.Err, err)
 				}
+			}
+		})
+	}
+}
+
+func TestIPv6FastPath(t *testing.T) {
+	tests := []struct {
+		Addr string
+	}{
+		// 0000::/8 start and finish
+		{Addr: "[::]:80"},  // unspecified address
+		{Addr: "[::1]:80"}, // locahost
+		{Addr: "[ff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:80"},
+		// ::ffff:0:0/96 start and finish
+		{Addr: "[::ffff:0:0]:80"},
+		{Addr: "[::ffff:ffff:ffff]:80"},
+		// 64:ff9b::/96 start and finish
+		{Addr: "[64:ff9b::]:80"},
+		{Addr: "[64:ff9b::0:ffff:ffff]:80"},
+		// 64:ff9b:1::/48 start and finish
+		{Addr: "[64:ff9b:1::]:80"},
+		{Addr: "[64:ff9b:0001:ffff:ffff:ffff:ffff:ffff]:80"},
+		// 100::/64 start and finish
+		{Addr: "[100::]:80"},
+		{Addr: "[100::ffff:ffff:ffff:ffff]:80"},
+		// f000::/4 start and finish, this is the supernet containing unique-local, site-local, link-scoped and multicast
+		{Addr: "[f000::]:80"},
+		{Addr: "[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]:80"},
+	}
+
+	s := New()
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.Addr, func(t *testing.T) {
+			t.Parallel()
+			err := s.Safe("tcp6", tc.Addr, nil)
+			if err == nil {
+				t.Fatalf("Expected prefix: %s to be blocked", tc.Addr)
+			}
+			if !errors.Is(err, ErrProhibitedIP) {
+				t.Log(err)
+				t.Fatalf("Expected prefix: %s to be blocked with: ErrProhibitedIP", tc.Addr)
+			}
+			if !strings.Contains(err.Error(), "outside of the IPv6 Global Unicast range") {
+				t.Log(err)
+				t.Fatalf("Expected prefix: %s to be caught by Global Unicast check", tc.Addr)
 			}
 		})
 	}
