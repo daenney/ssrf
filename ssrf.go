@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"strings"
 	"syscall"
 
 	"golang.org/x/exp/slices"
@@ -127,6 +128,9 @@ type Guardian struct {
 	allowedv6Prefixes []netip.Prefix
 	deniedv4Prefixes  []netip.Prefix
 	deniedv6Prefixes  []netip.Prefix
+
+	strNetworks string
+	strPorts    string
 }
 
 // New returns a Guardian initialised and ready to keep you safe
@@ -162,6 +166,18 @@ func New(opts ...Option) *Guardian {
 	g.deniedv4Prefixes = append(g.deniedv4Prefixes, IPv4DeniedPrefixes...)
 	g.deniedv6Prefixes = append(g.deniedv6Prefixes, IPv6DeniedPrefixes...)
 
+	if len(g.networks) < 1 {
+		g.strNetworks = "any"
+	} else {
+		g.strNetworks = strings.Join(g.networks, ", ")
+	}
+	if len(g.ports) < 1 {
+		g.strPorts = "any"
+	} else {
+		// There are more efficient and less hideous ways of doing this, but we only do it once
+		g.strPorts = strings.Trim(strings.Replace(fmt.Sprint(g.ports), " ", ", ", -1), "[]")
+	}
+
 	return g
 }
 
@@ -191,19 +207,19 @@ func New(opts ...Option) *Guardian {
 func (g *Guardian) Safe(network string, address string, _ syscall.RawConn) error {
 	if g.networks != nil {
 		if !slices.Contains(g.networks, network) {
-			return fmt.Errorf("%s is not a permitted network type: %w", network, ErrProhibitedNetwork)
+			return fmt.Errorf("%w: %s is not a permitted network type (%s)", ErrProhibitedNetwork, network, g.strNetworks)
 		}
 	}
 
 	ipport, err := netip.ParseAddrPort(address)
 	if err != nil {
-		return fmt.Errorf("could not parse: %s: %s: %w", address, err, ErrInvalidHostPort)
+		return fmt.Errorf("%w: could not parse %s: %s", ErrInvalidHostPort, address, err)
 	}
 
 	if g.ports != nil {
 		port := ipport.Port()
 		if !slices.Contains(g.ports, port) {
-			return fmt.Errorf("%d is not a permitted port: %w", port, ErrProhibitedPort)
+			return fmt.Errorf("%w: %d is not a permitted port (%s)", ErrProhibitedPort, port, g.strPorts)
 		}
 	}
 
@@ -219,12 +235,12 @@ func (g *Guardian) Safe(network string, address string, _ syscall.RawConn) error
 		// "fast path", in that anything outside of the IPv6 Global Unicast
 		// range is something we should never connect to
 		if !IPv6GlobalUnicast.Contains(ip) {
-			return fmt.Errorf("%s is not a permitted destination as it's outside of the IPv6 Global Unicast range: %w", ip, ErrProhibitedIP)
+			return fmt.Errorf("%w: %s is not a permitted destination as it's outside of the IPv6 Global Unicast range", ErrProhibitedIP, ip)
 		}
 
 		for _, net := range g.deniedv6Prefixes {
 			if net.Contains(ip) {
-				return fmt.Errorf("%s is not a permitted destination: %w", ip, ErrProhibitedIP)
+				return fmt.Errorf("%w: %s is not a permitted destination (denied by: %s)", ErrProhibitedIP, ip, net.String())
 			}
 		}
 		return nil
@@ -238,7 +254,7 @@ func (g *Guardian) Safe(network string, address string, _ syscall.RawConn) error
 	}
 	for _, net := range g.deniedv4Prefixes {
 		if net.Contains(ip) {
-			return fmt.Errorf("%s is not a permitted destination: %w", ip, ErrProhibitedIP)
+			return fmt.Errorf("%w: %s is not a permitted destination (denied by: %s)", ErrProhibitedIP, ip, net.String())
 		}
 	}
 
