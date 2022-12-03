@@ -29,17 +29,23 @@ import (
 )
 
 var (
-    // IPv4SpecialPurpose contains IPv4 special purpose IP prefixes
+    // IPv4DeniedPrefixes contains IPv4 special purpose IP prefixes from IANA
+    // as well as a number of other prefixes we wish to block by default
     // https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
-    IPv4SpecialPurpose = []netip.Prefix{
+    IPv4DeniedPrefixes = []netip.Prefix{
         {{- range $e := .V4 }}
         netip.MustParsePrefix("{{ $e.Prefix }}"), // {{ $e.Name }} ({{ $e.RFC }})
         {{- end }}
     }
 
-    // IPv6SpecialPurpose contains IPv6 special purpose IP prefixes
+    // IPv6GlobalUnicast is the prefix set aside by IANA for global unicast
+    // assignments, i.e "the internet"
+    IPv6GlobalUnicast = netip.MustParsePrefix("{{ .V6GlobalUnicast }}")
+
+    // IPv6DeniedPrefixes contains IPv6 special purpose IP prefixes from IANA
+    // within the IPv6 Global Unicast range that we wish to block by default
     // https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
-    IPv6SpecialPurpose = []netip.Prefix{
+    IPv6DeniedPrefixes = []netip.Prefix{
         {{- range $e := .V6 }}
         netip.MustParsePrefix("{{ $e.Prefix }}"), // {{ $e.Name }} ({{ $e.RFC }})
         {{- end }}

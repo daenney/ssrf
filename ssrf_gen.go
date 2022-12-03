@@ -29,9 +29,10 @@ import (
 )
 
 var (
-	// IPv4SpecialPurpose contains IPv4 special purpose IP prefixes
+	// IPv4DeniedPrefixes contains IPv4 special purpose IP prefixes from IANA
+	// as well as a number of other prefixes we wish to block by default
 	// https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
-	IPv4SpecialPurpose = []netip.Prefix{
+	IPv4DeniedPrefixes = []netip.Prefix{
 		netip.MustParsePrefix("0.0.0.0/8"),       // "This network" (RFC 791, Section 3.2)
 		netip.MustParsePrefix("10.0.0.0/8"),      // Private-Use (RFC 1918)
 		netip.MustParsePrefix("100.64.0.0/10"),   // Shared Address Space (RFC 6598)
@@ -52,22 +53,17 @@ var (
 		netip.MustParsePrefix("224.0.0.0/4"),     // Multicast (RFC 1112, Section 4)
 	}
 
-	// IPv6SpecialPurpose contains IPv6 special purpose IP prefixes
+	// IPv6GlobalUnicast is the prefix set aside by IANA for global unicast
+	// assignments, i.e "the internet"
+	IPv6GlobalUnicast = netip.MustParsePrefix("2000::/3")
+
+	// IPv6DeniedPrefixes contains IPv6 special purpose IP prefixes from IANA
+	// within the IPv6 Global Unicast range that we wish to block by default
 	// https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml
-	IPv6SpecialPurpose = []netip.Prefix{
-		netip.MustParsePrefix("::1/128"),           // Loopback Address (RFC 4291)
-		netip.MustParsePrefix("::/128"),            // Unspecified Address (RFC 4291)
-		netip.MustParsePrefix("::ffff:0:0/96"),     // IPv4-mapped Address (RFC 4291)
-		netip.MustParsePrefix("64:ff9b::/96"),      // IPv4-IPv6 Translation (RFC 6052)
-		netip.MustParsePrefix("64:ff9b:1::/48"),    // IPv4-IPv6 Translation (RFC 8215)
-		netip.MustParsePrefix("100::/64"),          // Discard-Only Address Block (RFC 6666)
+	IPv6DeniedPrefixes = []netip.Prefix{
 		netip.MustParsePrefix("2001::/23"),         // IETF Protocol Assignments (RFC 2928)
 		netip.MustParsePrefix("2001:db8::/32"),     // Documentation (RFC 3849)
 		netip.MustParsePrefix("2002::/16"),         // 6to4 (RFC 3056)
 		netip.MustParsePrefix("2620:4f:8000::/48"), // Direct Delegation AS112 Service (RFC 7534)
-		netip.MustParsePrefix("fc00::/7"),          // Unique-Local (RFC 4193, RFC 8190)
-		netip.MustParsePrefix("fe80::/10"),         // Link-Local Unicast (RFC 4291)
-		netip.MustParsePrefix("fec0::/10"),         // Deprecated (site-local) (RFC 3879)
-		netip.MustParsePrefix("ff00::/8"),          // Multicast (RFC 4291)
 	}
 )

@@ -27,9 +27,10 @@ var (
 // Option sets an option on a Guardian
 type Option = func(g *Guardian)
 
-// WithAllowedV4Prefixes allows explicitly whitelisting (additiona) IPv4
-// prefixes. If a prefix is passed here that overlaps with [IPv4SpecialPurpose]
-// the request will be permitted.
+// WithAllowedV4Prefixes adds explicitly allowed IPv4 prefixes.
+// Any prefixes added here will be checked before the built-in
+// deny list and as such can be used to allow connections to
+// otherwise denied prefixes.
 //
 // This function overrides the allowed IPv4 prefixes, it does not accumulate.
 func WithAllowedV4Prefixes(prefixes ...netip.Prefix) Option {
@@ -38,9 +39,13 @@ func WithAllowedV4Prefixes(prefixes ...netip.Prefix) Option {
 	}
 }
 
-// WithAllowedV6Prefixes allows explicitly whitelisting (additiona) IPv6
-// prefixes. If a prefix is passed here that overlaps with [IPv6SpecialPurpose]
-// the request will be permitted.
+// WithAllowedV6Prefixes adds explicitly allowed IPv6 prefixes.
+// Any prefixes added here will be checked before the checks on
+// global unicast range membership, the denied prefixes from
+// [WithDeniedV6Prefixes] and the built-in deny list within the
+// global unicast space. This can be used to allow connections to
+// ranges outside of the global unicast range or connections to
+// otherwise denied prefixes within the global unicast range.
 //
 // This function overrides the allowed IPv6 prefixes, it does not accumulate.
 func WithAllowedV6Prefixes(prefixes ...netip.Prefix) Option {
@@ -50,13 +55,10 @@ func WithAllowedV6Prefixes(prefixes ...netip.Prefix) Option {
 }
 
 // WithDeniedV4Prefixes allows denying IPv4 prefixes in case you want to deny
-// more than just [IPv4SpecialPurpose].
+// more than the built-in set of denied prefixes. These prefixes are checked
+// before checking the prefixes listed in [IPv4DeniedPrefixes].
 //
 // This function overrides the denied IPv4 prefixes, it does not accumulate.
-//
-// The prefixes passed in are prepended to [IPv4SpecialPurpose]. If you want
-// to allow calls to a prefix in [IPv4SpecialPurpose], use [WithAllowedV4Prefixes]
-// instead.
 func WithDeniedV4Prefixes(prefixes ...netip.Prefix) Option {
 	return func(g *Guardian) {
 		g.deniedv4Prefixes = prefixes
@@ -64,13 +66,11 @@ func WithDeniedV4Prefixes(prefixes ...netip.Prefix) Option {
 }
 
 // WithDeniedV6Prefixes allows denying IPv6 prefixes in case you want to deny
-// more than just [IPv6SpecialPurpose].
+// more than the built-in set of denied prefixes within the global unicast
+// range. These prefixes are checked before checking the prefixes listed in
+// [IPv6DeniedPrefixes] but after the [IPv6GlobalUnicast] membership check.
 //
 // This function overrides the denied IPv6 prefixes, it does not accumulate.
-//
-// The prefixes passed in are prepended to [IPv6SpecialPurpose]. If you want
-// to allow calls to a prefix in [IPv6SpecialPurpose], use [WithAllowedV6Prefixes]
-// instead.
 func WithDeniedV6Prefixes(prefixes ...netip.Prefix) Option {
 	return func(g *Guardian) {
 		g.deniedv6Prefixes = prefixes
@@ -131,20 +131,22 @@ type Guardian struct {
 
 // New returns a Guardian initialised and ready to keep you safe
 //
-// It is initialised with 2 defaults:
+// It is initialised with some defaults:
 //   - tcp4 and tcp6 are considered the only valid networks/protocols
 //   - 80 and 443 are considered the only valid ports
+//   - For IPv4, any prefix in the IANA Special Purpose Registry for IPv4 is
+//     denied
+//   - For IPv6, any prefix outside of the IPv6 Global Unicast range is denied,
+//     as well as any prefix in the IANA Special Purpose Registry for IPv6
+//     that falls within the IPv6 Global Unicast range
 //
-// Both can be overridden by calling [WithNetworks] and [WithPorts] to
+// Networks and ports can be overridden with [WithNetworks] and [WithPorts] to
 // specify different ones, or [WithAnyNetwork] and [WithAnyPort] to
 // disable checking for those entirely.
 //
-// A Guardian always checks if the IP encountered is in the IPv4 or IPv6
-// special prefixes [IPv4SpecialPurpose] or [IPv6SpecialPurpose]. If you
-// want to allow a call to one of those prefixes you can explicitly permit
-// it with [WithAllowedV4Prefixes] or [WithAllowedV6Prefixes]. You can
-// also add additional explicitly denied prefixes through
-// [WithDeniedV4Prefixes] and [WithDeniedV6Prefixes].
+// For prefixes [WithAllowedV4Prefixes], [WithAllowedV6Prefixes]
+// [WithDeniedV4Prefixes] and [WithDeniedV6Prefixes] can be used to customise
+// which prefixes are additionally allowed or denied.
 //
 // [Guardian.Safe] details the order in which things are checked.
 func New(opts ...Option) *Guardian {
@@ -157,8 +159,8 @@ func New(opts ...Option) *Guardian {
 		opt(g)
 	}
 
-	g.deniedv4Prefixes = append(g.deniedv4Prefixes, IPv4SpecialPurpose...)
-	g.deniedv6Prefixes = append(g.deniedv6Prefixes, IPv6SpecialPurpose...)
+	g.deniedv4Prefixes = append(g.deniedv4Prefixes, IPv4DeniedPrefixes...)
+	g.deniedv6Prefixes = append(g.deniedv6Prefixes, IPv6DeniedPrefixes...)
 
 	return g
 }
@@ -166,17 +168,24 @@ func New(opts ...Option) *Guardian {
 // Safe is the function that should be passed in the [net.Dialer]'s Control field
 //
 // This function checks a number of things, in sequence:
-//   - Does the network string match the permitted protocols? If not, deny the request,
-//     otherwise move on to the next check
-//   - Does the port match one of our permitted ports? If not, deny the quest, otherwise
-//     move on to the next check
+//   - Does the network string match the permitted protocols? If not, deny the request
+//   - Does the port match one of our permitted ports? If not, deny the request
 //
-// Then, for either IPv4 or IPv6:
-//   - Is the IP within an explicitly allowed IPvX prefix? If so, allow it, otherwise
-//     move on to the next check
-//   - Is the IP within an explicitly denied IPvX prefix? If so, deny it, otherwise
-//     move on to the next check
-//   - Is the IP within the IPvXSpecialPrefix? If so, deny it
+// Moving on, we then check if the IP we're given is an IPv6 address. IPv4-mapped-IPv6
+// addresses are considered as being an IPv6 address.
+//
+// For IPv6 we then check:
+//   - Is the IP part of one of the prefixes passed in through [WithAllowedV6Prefixes]? If
+//     so, allow the request
+//   - Is the IP part of the IPv6 Global Unicast range? If not, deny the request
+//   - Is the IP part of one of the prefixes passed in through [WithDeniedV6Prefixes] or
+//     within the denied prefixes in the IPv6 Global Unicast range? If so deny the request
+//
+// If the IP is not IPv6, the it's IPv4 and so we check:
+//   - Is the IP part of one of the prefixes passed in through [WithAllowedV4Prefixes]? If
+//     so, allow the request
+//   - Is the IP part of one of the prefixes passed in through [WithDeniedV4Prefixes] or
+//     within the built-in denied IPv4 prefixes? If so, deny the request
 //
 // If nothing matched, the request is permitted.
 func (g *Guardian) Safe(network string, address string, _ syscall.RawConn) error {
@@ -206,6 +215,13 @@ func (g *Guardian) Safe(network string, address string, _ syscall.RawConn) error
 				return nil
 			}
 		}
+
+		// "fast path", in that anything outside of the IPv6 Global Unicast
+		// range is something we should never connect to
+		if !IPv6GlobalUnicast.Contains(ip) {
+			return fmt.Errorf("%s is not a permitted destination as it's outside of the IPv6 Global Unicast range: %w", ip, ErrProhibitedIP)
+		}
+
 		for _, net := range g.deniedv6Prefixes {
 			if net.Contains(ip) {
 				return fmt.Errorf("%s is not a permitted destination: %w", ip, ErrProhibitedIP)

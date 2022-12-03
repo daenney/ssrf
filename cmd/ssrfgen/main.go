@@ -17,17 +17,12 @@ import (
 const (
 	ipv4SpecialPurposeRegistry = "https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry-1.csv"
 	ipv6SpecialPurposeRegistry = "https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry-1.csv"
+	ipv6GlobalUnicast          = "2000::/3"
 )
 
-var (
-	additionalV4Entries = []entry{
-		{Name: "Multicast", Prefix: "224.0.0.0/4", RFC: "RFC 1112, Section 4"},
-	}
-	additionalV6Entries = []entry{
-		{Name: "Deprecated (site-local)", Prefix: "fec0::/10", RFC: "RFC 3879"},
-		{Name: "Multicast", Prefix: "ff00::/8", RFC: "RFC 4291"},
-	}
-)
+var additionalV4Entries = []entry{
+	{Name: "Multicast", Prefix: "224.0.0.0/4", RFC: "RFC 1112, Section 4"},
+}
 
 func main() {
 	output := flag.String("output.gen", "", "file to write the generated code into")
@@ -57,11 +52,13 @@ func main() {
 
 	if t, ok := templates["ssrf.tmpl"]; ok {
 		data := struct {
-			V4 []entry
-			V6 []entry
+			V4              []entry
+			V6              []entry
+			V6GlobalUnicast string
 		}{
-			V4: append(v4, additionalV4Entries...),
-			V6: append(v6, additionalV6Entries...),
+			V4:              append(v4, additionalV4Entries...),
+			V6:              v6,
+			V6GlobalUnicast: ipv6GlobalUnicast,
 		}
 		if err := t.Execute(f, data); err != nil {
 			errExit(err, 1, f)
@@ -157,12 +154,32 @@ func fetch(ctx context.Context, url string) ([]entry, error) {
 		prefixes := rec[0]
 		for _, p := range handleNetwork(prefixes) {
 			p := p
-			if !containsPrefix(entries, p) {
-				entries = append(entries, entry{
-					Prefix: p,
-					Name:   cleanName(rec[1]),
-					RFC:    cleanRFC(rec[2]),
-				})
+			pr := netip.MustParsePrefix(p)
+			if pr.Addr().Is4() {
+				if !containsPrefix(entries, p) {
+					entries = append(entries, entry{
+						Prefix: p,
+						Name:   cleanName(rec[1]),
+						RFC:    cleanRFC(rec[2]),
+					})
+				} else {
+					fmt.Printf("Skipping prefix: %s as it's already matched by another prefix\n", p)
+				}
+			}
+			if pr.Addr().Is6() {
+				if containsPrefix([]entry{{Prefix: ipv6GlobalUnicast, Name: "IPv6 Global Unicast"}}, p) {
+					if !containsPrefix(entries, p) {
+						entries = append(entries, entry{
+							Prefix: p,
+							Name:   cleanName(rec[1]),
+							RFC:    cleanRFC(rec[2]),
+						})
+					} else {
+						fmt.Printf("Skipping prefix: %s as it's already matched by another prefix\n", p)
+					}
+				} else {
+					fmt.Printf("Skipping prefix: %s as it's not within the IPv6 Global Unicast range\n", p)
+				}
 			}
 		}
 	}
@@ -188,7 +205,6 @@ func containsPrefix(entries []entry, prefix string) bool {
 			}
 			found = pp.Addr() == p1.Addr()
 			if found {
-				fmt.Printf("Skipping prefix: %s matched by entry: %s (%s)\n", prefix, e.Prefix, e.Name)
 				break
 			}
 		}
