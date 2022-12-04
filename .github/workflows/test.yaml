@@ -32,12 +32,12 @@ jobs:
       uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
-    - name: Setup gotestfmt
-      uses: GoTestTools/gotestfmt-action@v2.1.0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
     - name: Checkout code
       uses: actions/checkout@v3
+    - name: Setup gotestfmt
+      uses: GoTestTools/gotestfmt-action@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
     - name: Setup Go module caching
       uses: actions/cache@v3
       with:
