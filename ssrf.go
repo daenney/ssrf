@@ -48,6 +48,17 @@ func WithAllowedV4Prefixes(prefixes ...netip.Prefix) Option {
 // ranges outside of the global unicast range or connections to
 // otherwise denied prefixes within the global unicast range.
 //
+// This function should be called with [IPv6NAT64Prefix] as one of the
+// prefixes, if you run in an IPv6-only environment but provide IPv4
+// connectivity through a combination of DNS64+NAT64. The NAT64 prefix
+// is outside of the IPv6 global unicast range and as such blocked by
+// default. Allowing it is typically harmless in dual-stack setups as
+// your clients need an explicit route for 64:ff9b::/96 configured which
+// won't be the case by default. Beware that allowing this prefix may
+// allow for an address like 64:ff9b::7f00:1, i.e 127.0.0.1 mapped to
+// NAT64. A NAT64 gateway should drop this. Ideally a DNS64 server
+// would never generate an address for an RFC1918 IP in an A-record.
+//
 // This function overrides the allowed IPv6 prefixes, it does not accumulate.
 func WithAllowedV6Prefixes(prefixes ...netip.Prefix) Option {
 	return func(g *Guardian) {
