@@ -57,6 +57,11 @@ var (
 	// assignments, i.e "the internet"
 	IPv6GlobalUnicast = netip.MustParsePrefix("2000::/3")
 
+	// IPv6NAT64Prefix is the prefix set aside for NAT64. This allows a server
+	// to only have an IPv6 address but still be able to talk to an IPv4-only
+	// server through DNS64+NAT64
+	IPv6NAT64Prefix = netip.MustParsePrefix("64:ff9b::/96")
+
 	// IPv6DeniedPrefixes contains IPv6 special purpose IP prefixes from IANA
 	// within the IPv6 Global Unicast range that we wish to block by default
 	// https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml

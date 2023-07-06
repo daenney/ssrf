@@ -77,6 +77,11 @@ func TestOptions(t *testing.T) {
 			Result:  &Guardian{networks: []string{"tcp4", "tcp6"}, ports: []uint16{80, 443}, allowedv6Prefixes: []netip.Prefix{netip.MustParsePrefix("2002::/8")}, deniedv4Prefixes: IPv4DeniedPrefixes, deniedv6Prefixes: IPv6DeniedPrefixes, strNetworks: "tcp4, tcp6", strPorts: "80, 443"},
 		},
 		{
+			Name:    "with allowed NAT64 prefix",
+			Options: []Option{WithAllowedV6Prefixes(IPv6NAT64Prefix)},
+			Result:  &Guardian{networks: []string{"tcp4", "tcp6"}, ports: []uint16{80, 443}, allowedv6Prefixes: []netip.Prefix{IPv6NAT64Prefix}, deniedv4Prefixes: IPv4DeniedPrefixes, deniedv6Prefixes: IPv6DeniedPrefixes, strNetworks: "tcp4, tcp6", strPorts: "80, 443"},
+		},
+		{
 			Name:    "with multiple allowed v6 prefix calls",
 			Options: []Option{WithAllowedV6Prefixes(netip.MustParsePrefix("2002::/23")), WithAllowedV6Prefixes(netip.MustParsePrefix("2002::/8"))},
 			Result:  &Guardian{networks: []string{"tcp4", "tcp6"}, ports: []uint16{80, 443}, allowedv6Prefixes: []netip.Prefix{netip.MustParsePrefix("2002::/8")}, deniedv4Prefixes: IPv4DeniedPrefixes, deniedv6Prefixes: IPv6DeniedPrefixes, strNetworks: "tcp4, tcp6", strPorts: "80, 443"},
@@ -155,6 +160,7 @@ func TestDefaultGuardian(t *testing.T) {
 		{Addr: "invalid network", Network: "udp6", Err: ErrProhibitedNetwork},
 		{Addr: "invalid address", Network: "tcp4", Err: ErrInvalidHostPort},
 		{Addr: "[::ffff:129.144.52.38]:80", Network: "tcp6", Err: ErrProhibitedIP},
+		{Addr: "[64:ff9b::7f00:1]:80", Network: "tcp6", Err: ErrProhibitedIP},
 	}
 
 	s := New()
@@ -222,6 +228,12 @@ func TestCustomGuardian(t *testing.T) {
 			Name:     "allow prefix from IP6SpecialPurpose",
 			Guardian: New(WithAllowedV6Prefixes(netip.MustParsePrefix("2001::/23"))),
 			Addr:     "[2001::1]:80",
+			Network:  "tcp6",
+		},
+		{
+			Name:     "allow IPv6 NAT64 prefix",
+			Guardian: New(WithAllowedV6Prefixes(IPv6NAT64Prefix)),
+			Addr:     "[64:ff9b::7f00:1]:80",
 			Network:  "tcp6",
 		},
 		{
