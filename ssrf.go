@@ -4,10 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"slices"
 	"strings"
 	"syscall"
-
-	"golang.org/x/exp/slices"
 )
 
 var (
