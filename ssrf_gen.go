@@ -70,5 +70,6 @@ var (
 		netip.MustParsePrefix("2001:db8::/32"),     // Documentation (RFC 3849)
 		netip.MustParsePrefix("2002::/16"),         // 6to4 (RFC 3056)
 		netip.MustParsePrefix("2620:4f:8000::/48"), // Direct Delegation AS112 Service (RFC 7534)
+		netip.MustParsePrefix("3fff::/20"),         // Documentation (RFC 9637)
 	}
 )
