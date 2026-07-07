@@ -226,6 +226,11 @@ func (g *Guardian) Safe(network string, address string, _ syscall.RawConn) error
 		return fmt.Errorf("%w: could not parse %s: %s", ErrInvalidHostPort, address, err)
 	}
 
+	return g.SafeAddrPort(ipport)
+}
+
+// SafeAddrPort operates like Safe except only the port and IP address are checked.
+func (g *Guardian) SafeAddrPort(ipport netip.AddrPort) error {
 	if g.ports != nil {
 		port := ipport.Port()
 		if !slices.Contains(g.ports, port) {
@@ -233,8 +238,11 @@ func (g *Guardian) Safe(network string, address string, _ syscall.RawConn) error
 		}
 	}
 
-	ip := ipport.Addr()
+	return g.SafeAddr(ipport.Addr())
+}
 
+// SafeAddrPort operates like Safe except only the IP address is checked.
+func (g *Guardian) SafeAddr(ip netip.Addr) error {
 	if ip.Is6() {
 		for _, net := range g.allowedv6Prefixes {
 			if net.Contains(ip) {
